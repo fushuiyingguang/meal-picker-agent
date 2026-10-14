@@ -4,10 +4,12 @@ from meal_picker_agent.models import Dish
 from meal_picker_agent.storage import StorageError
 
 
-def _dish(name="宫保鸡丁", category="中餐", taste=None, price=None, meat_type="荤", distance=300):
+def _dish(name="宫保鸡丁", category="中餐", taste=None, price=None, meat_type="荤",
+          distance=300, latitude=31.24, longitude=121.48):
     return Dish(
         id=None, name=name, category=category, taste=taste or [],
         price=price, meat_type=meat_type, distance=distance,
+        latitude=latitude, longitude=longitude,
     )
 
 
@@ -18,6 +20,9 @@ class TestDish:
         assert d.name == "宫保鸡丁"
         assert d.category == "中餐"
         assert d.meat_type == "荤"
+        assert d.distance == 300
+        assert d.latitude == 31.24
+        assert d.longitude == 121.48
 
     def test_add_duplicate_raises(self, storage):
         storage.add_dish(_dish())
@@ -36,12 +41,28 @@ class TestDish:
         assert {d.name for d in storage.list_dishes(max_distance=500)} == {"宫保鸡丁"}
         assert {d.name for d in storage.list_dishes(keyword="面")} == {"牛肉面"}
 
+    def test_list_filters_category_list(self, storage):
+        storage.add_dish(_dish("宫保鸡丁", "中餐", ["辣"], 30, "荤", 300))
+        storage.add_dish(_dish("烤羊肉串", "烧烤", ["辣"], 30, "荤", 900))
+        storage.add_dish(_dish("蔬菜沙拉", "西餐", ["清淡"], 20, "素", 700))
+
+        assert {d.name for d in storage.list_dishes(category=["中餐", "烧烤"])} == {"宫保鸡丁", "烤羊肉串"}
+
+    def test_list_filters_min_price(self, storage):
+        storage.add_dish(_dish("宫保鸡丁", "中餐", ["辣"], 30, "荤", 300))
+        storage.add_dish(_dish("凉皮", "小吃", ["酸"], 9, "素", 800))
+        storage.add_dish(_dish("扬州炒饭", "中餐", ["咸"], 16, "荤", 420))
+
+        assert {d.name for d in storage.list_dishes(min_price=15)} == {"宫保鸡丁", "扬州炒饭"}
+        assert {d.name for d in storage.list_dishes(min_price=15, max_price=20)} == {"扬州炒饭"}
+
     def test_update(self, storage):
         dish_id = storage.add_dish(_dish())
-        assert storage.update_dish(dish_id, price=35, taste=["下饭"])
+        assert storage.update_dish(dish_id, price=35, taste=["下饭"], latitude=31.25)
         d = storage.get_dish(dish_id)
         assert d.price == 35
         assert d.taste == ["下饭"]
+        assert d.latitude == 31.25
 
     def test_delete_keeps_history(self, storage):
         dish_id = storage.add_dish(_dish("回锅肉", "中餐"))
@@ -92,7 +113,7 @@ class TestExport:
     def test_export_dishes_csv(self, storage):
         storage.add_dish(_dish())
         out = storage.export_dishes("csv")
-        assert "name" in out and "宫保鸡丁" in out
+        assert "name" in out and "宫保鸡丁" in out and "latitude" in out
 
     def test_export_records_json(self, storage):
         dish_id = storage.add_dish(_dish())

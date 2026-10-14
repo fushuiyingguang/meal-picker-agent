@@ -12,6 +12,7 @@
 | 编码规范 | [coding-standards.md](coding-standards.md) | 命名、格式、类型、异常处理约定 |
 | 执行步骤规范 | [execution-steps.md](execution-steps.md) | 从需求到交付的标准开发流程 |
 | 版本控制规范 | [git-workflow.md](git-workflow.md) | 分支、提交信息与协作约定 |
+| 云端部署 | [deploy-guide.md](deploy-guide.md) | 依赖、部署步骤、数据库自动检测说明 |
 
 ## 模块报告（每模块一条完整链条）
 | 模块 | 文件 |
@@ -19,6 +20,11 @@
 | M1 菜品库管理 | [module1.md](module1.md) |
 | M2 智能筛选与摇号 | [module2.md](module2.md) |
 | M3 记录评价 | [module3.md](module3.md) |
+
+## 总结报告
+| 文档 | 文件 |
+| --- | --- |
+| 项目总结报告 | [summary.md](summary.md) |
 
 ## 通用约定
 - 文档语言：中文。

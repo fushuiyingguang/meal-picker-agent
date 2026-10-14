@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS dishes (
     taste TEXT NOT NULL DEFAULT '',
     meat_type TEXT NOT NULL DEFAULT '',
     distance REAL,
+    latitude REAL,
+    longitude REAL,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE TABLE IF NOT EXISTS records (
@@ -59,6 +61,8 @@ def _row_to_dish(row: sqlite3.Row) -> Dish:
         taste=_str_to_list(row["taste"]),
         meat_type=row["meat_type"],
         distance=row["distance"],
+        latitude=row["latitude"],
+        longitude=row["longitude"],
     )
 
 
@@ -87,10 +91,15 @@ class Storage:
         return conn
 
     def init_db(self) -> None:
-        """建库建表（幂等）。"""
+        """建库建表（幂等），并补足旧库缺失的经纬度列。"""
         conn = self._connect()
         try:
             conn.executescript(_SCHEMA)
+            cols = {r["name"] for r in conn.execute("PRAGMA table_info(dishes)")}
+            if "latitude" not in cols:
+                conn.execute("ALTER TABLE dishes ADD COLUMN latitude REAL")
+            if "longitude" not in cols:
+                conn.execute("ALTER TABLE dishes ADD COLUMN longitude REAL")
             conn.commit()
         finally:
             conn.close()
@@ -101,9 +110,10 @@ class Storage:
         conn = self._connect()
         try:
             cur = conn.execute(
-                "INSERT INTO dishes (name, category, price, taste, meat_type, distance) "
-                "VALUES (?, ?, ?, ?, ?, ?)",
-                (dish.name, dish.category, dish.price, _list_to_str(dish.taste), dish.meat_type, dish.distance),
+                "INSERT INTO dishes (name, category, price, taste, meat_type, distance, latitude, longitude) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (dish.name, dish.category, dish.price, _list_to_str(dish.taste), dish.meat_type,
+                 dish.distance, dish.latitude, dish.longitude),
             )
             conn.commit()
             return cur.lastrowid
@@ -122,25 +132,33 @@ class Storage:
 
     def list_dishes(
         self,
-        category: str | None = None,
+        category: str | list[str] | None = None,
         taste: list[str] | None = None,
         meat_type: str | None = None,
+        min_price: float | None = None,
         max_price: float | None = None,
         max_distance: float | None = None,
         keyword: str | None = None,
     ) -> list[Dish]:
-        """多条件筛选。taste 为「含任一口味即命中」的精确匹配。"""
+        """多条件筛选。taste 为「含任一口味即命中」的精确匹配；category 可为单个或列表。"""
         clauses: list[str] = []
         params: list = []
         if category:
-            clauses.append("category = ?")
-            params.append(category)
+            if isinstance(category, list):
+                clauses.append("category IN (" + ",".join("?" for _ in category) + ")")
+                params.extend(category)
+            else:
+                clauses.append("category = ?")
+                params.append(category)
         if taste:
             clauses.append("(" + " OR ".join("(',' || taste || ',') LIKE ?" for _ in taste) + ")")
             params.extend(f"%,{t},%" for t in taste)
         if meat_type:
             clauses.append("meat_type = ?")
             params.append(meat_type)
+        if min_price is not None:
+            clauses.append("price IS NOT NULL AND price >= ?")
+            params.append(min_price)
         if max_price is not None:
             clauses.append("price IS NOT NULL AND price <= ?")
             params.append(max_price)
@@ -160,7 +178,7 @@ class Storage:
 
     def update_dish(self, dish_id: int, **fields) -> bool:
         """按关键字参数更新字段（taste 传 list）；显式传 None 表示置空。"""
-        allowed = {"name", "category", "price", "taste", "meat_type", "distance"}
+        allowed = {"name", "category", "price", "taste", "meat_type", "distance", "latitude", "longitude"}
         updates = {k: v for k, v in fields.items() if k in allowed}
         if not updates:
             return False
@@ -198,9 +216,10 @@ class Storage:
             return json.dumps([asdict(d) for d in dishes], ensure_ascii=False, indent=2)
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["id", "name", "category", "price", "taste", "meat_type", "distance"])
+        writer.writerow(["id", "name", "category", "price", "taste", "meat_type", "distance", "latitude", "longitude"])
         for d in dishes:
-            writer.writerow([d.id, d.name, d.category, d.price, ",".join(d.taste), d.meat_type, d.distance])
+            writer.writerow([d.id, d.name, d.category, d.price, ",".join(d.taste), d.meat_type,
+                             d.distance, d.latitude, d.longitude])
         return buf.getvalue()
 
     # ---- 记录 ----

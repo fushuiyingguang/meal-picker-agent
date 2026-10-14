@@ -10,8 +10,10 @@
 - 测试：`pytest`（业务逻辑单测；页面层手动验收 + 截图补入报告）。
 
 ## 依赖
-- 运行：`streamlit`
+- 运行：`streamlit`、`pandas`、`openpyxl`（Excel 导入）
+- 爬虫脚本（代码留存）：`requests`
 - 测试：`pytest`
+- 依赖清单：`requirements.txt`（与 `pyproject.toml` 保持一致）
 
 ## 依赖管理
 - `pyproject.toml` + 虚拟环境（`venv` 或 `uv`），锁文件提交保证可复现。
@@ -27,8 +29,15 @@ meal-picker-agent/
 ├── src/meal_picker_agent/
 │   ├── storage.py              # 共享数据访问层（接口见 docs/data-interface.md）
 │   ├── models.py               # Dish / Record 数据模型
-│   └── service/                # 各模块业务逻辑（筛选/摇号/统计）
+│   ├── geo.py                  # Haversine 距离 + 球面偏移
+│   ├── seed.py                 # 演示数据（中原工学院周边）
+│   └── config.py               # 全局配置（数据库路径 + 默认地理中心）
+├── scripts/
+│   └── fetch_meituan.py        # 爬虫脚本（仅代码留存，默认离线）
+├── samples/
+│   └── beiyuan_1f_menu.csv     # 团队实地采集北苑1楼 77 条真实菜品数据
 ├── data/                       # SQLite 文件（git 忽略）
+├── requirements.txt            # 云端部署依赖清单
 ├── tests/
 ├── docs/
 └── dev-log/

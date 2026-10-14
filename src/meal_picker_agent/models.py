@@ -16,6 +16,8 @@ class Dish:
     taste: list[str] = field(default_factory=list)  # 口味标签，如 辣/清淡/甜
     meat_type: str = ""                              # 荤素：荤/素/半荤素
     distance: float | None = None                    # 距离（米）
+    latitude: float | None = None                    # 纬度
+    longitude: float | None = None                   # 经度
 
 
 @dataclass

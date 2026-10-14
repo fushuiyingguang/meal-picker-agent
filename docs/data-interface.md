@@ -18,6 +18,8 @@
 | taste | TEXT | DEFAULT '' | 口味，逗号分隔，如 `辣,咸` |
 | meat_type | TEXT | DEFAULT '' | 荤素：荤/素/半荤素 |
 | distance | REAL | 可空 | 距离（米） |
+| latitude | REAL | 可空 | 纬度 |
+| longitude | REAL | 可空 | 经度 |
 | created_at | TEXT | DEFAULT 当前时间 | 录入时间 |
 
 ### `records`（选餐记录）
@@ -42,6 +44,8 @@ CREATE TABLE dishes (
     taste TEXT NOT NULL DEFAULT '',
     meat_type TEXT NOT NULL DEFAULT '',
     distance REAL,
+    latitude REAL,
+    longitude REAL,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE TABLE records (
@@ -66,6 +70,8 @@ class Dish:
     taste: list[str] = field(default_factory=list)  # 口味标签
     meat_type: str = ""                              # 荤/素/半荤素
     distance: float | None = None                    # 距离（米）
+    latitude: float | None = None                    # 纬度
+    longitude: float | None = None                   # 经度
 
 @dataclass
 class Record:
@@ -86,7 +92,7 @@ class Record:
 | `init_db()` | 建库建表（幂等） |
 | `add_dish(dish) -> int` | 新增，重名抛 `StorageError` |
 | `get_dish(dish_id) -> Dish \| None` | 按 id 查询 |
-| `list_dishes(category=None, taste=None, meat_type=None, max_price=None, max_distance=None, keyword=None) -> list[Dish]` | 多条件筛选（taste 任一命中） |
+| `list_dishes(category=None, taste=None, meat_type=None, min_price=None, max_price=None, max_distance=None, keyword=None) -> list[Dish]` | 多条件筛选（taste 任一命中；category 可为单个或列表） |
 | `update_dish(dish_id, **fields) -> bool` | 更新字段（taste 传 list，None 置空） |
 | `delete_dish(dish_id) -> bool` | 删除并保留历史（dish_id 置空、快照保留） |
 | `export_dishes(fmt="csv") -> str` | 导出内容字符串（csv/json） |
@@ -102,6 +108,9 @@ M1 菜品库 ──写──▶ dishes ──读──▶ M2 筛选摇号 ──
                                 │
                                 └─ recent_dish_ids(days) 排除近期已选（不重复推荐）
 ```
+
+## 地理计算
+- 距离用 Haversine 公式（`src/meal_picker_agent/geo.py`）实时计算；默认地理中心 `DEFAULT_CENTER = (34.626, 113.705)`（中原工学院）在 `config.py`。
 
 ## 约定
 - 数据库文件不入库；首次启动自动 `init_db`。

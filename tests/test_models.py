@@ -7,6 +7,8 @@ def test_dish_defaults():
     assert d.price is None
     assert d.meat_type == ""
     assert d.distance is None
+    assert d.latitude is None
+    assert d.longitude is None
 
 
 def test_record_defaults():

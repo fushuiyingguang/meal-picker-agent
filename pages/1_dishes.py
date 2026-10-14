@@ -28,6 +28,13 @@ def _to_float(value):
     return float(s) if s else None
 
 
+def _parse_coord(value):
+    s = "" if value is None else str(value).strip()
+    if not s:
+        return None
+    return float(s)
+
+
 def _import_dataframe(storage, df):
     count = 0
     errors = []
@@ -41,6 +48,8 @@ def _import_dataframe(storage, df):
                 taste=_parse_taste(row.get("taste")),
                 meat_type=str(row.get("meat_type") or "").strip(),
                 distance=_to_float(row.get("distance")),
+                latitude=_to_float(row.get("latitude")),
+                longitude=_to_float(row.get("longitude")),
             )
             storage.add_dish(dish)
             count += 1
@@ -64,6 +73,8 @@ with st.expander("➕ 录入单个菜品", expanded=True):
         distance = col2.number_input("距离（米）", min_value=0.0, value=500.0, step=50.0)
         taste = st.multiselect("口味", TASTES)
         meat_type = st.selectbox("荤素", MEAT_TYPES)
+        lat_s = col1.text_input("纬度（可选）", placeholder="如 31.2304")
+        lon_s = col2.text_input("经度（可选）", placeholder="如 121.4737")
         submitted = st.form_submit_button("保存")
     if submitted:
         if not name.strip():
@@ -79,10 +90,12 @@ with st.expander("➕ 录入单个菜品", expanded=True):
                         taste=taste,
                         meat_type=meat_type,
                         distance=distance,
+                        latitude=_parse_coord(lat_s),
+                        longitude=_parse_coord(lon_s),
                     )
                 )
                 st.success(f"已保存：{name.strip()}")
-            except StorageError as exc:
+            except (StorageError, ValueError) as exc:
                 st.error(str(exc))
 
 # ---- 批量导入 ----
@@ -119,6 +132,8 @@ else:
                 "口味": "、".join(d.taste),
                 "荤素": d.meat_type,
                 "距离(米)": d.distance,
+                "纬度": d.latitude,
+                "经度": d.longitude,
             }
             for d in dishes
         ]
