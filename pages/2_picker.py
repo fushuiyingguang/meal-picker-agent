@@ -14,7 +14,9 @@ CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜�
 TASTES = ["辣", "麻", "清淡", "甜", "咸", "酸"]
 
 # 早餐品类关键词：聚餐模式下剔除，避免正餐场景抽出纯早餐（单人简餐保留）
-BREAKFAST_KEYWORDS = ["包", "粥", "鸡蛋", "油条", "豆浆", "胡辣汤", "馒头", "烧麦"]
+BREAKFAST_KEYWORDS = ["包", "粥", "鸡蛋", "油条", "豆浆", "胡辣汤", "馒头", "烧麦", "早餐"]
+# 白名单：名字里带这些片段的正餐小吃不判为早餐（如「饼卷青椒鸡蛋」）
+BREAKFAST_WHITELIST = ["饼卷"]
 
 # 五种用餐模式预设：就餐人数、总预算区间（元）、距离（公里）、口味、荤素倾向、分类
 MODE_NAMES = ["单人简餐", "朋友小聚", "家庭聚餐", "公司聚餐", "社团团建"]
@@ -47,7 +49,9 @@ def _meat_ratio(meat_type: str) -> float:
 
 
 def _is_breakfast(name: str) -> bool:
-    """判断菜名是否为纯早餐品类；「鸡蛋」用精确/结尾匹配，避免误伤「鸡蛋灌饼」。"""
+    """判断菜名是否为纯早餐品类：白名单优先，鸡蛋用精确/结尾匹配避免误伤正餐小吃。"""
+    if any(w in name for w in BREAKFAST_WHITELIST):
+        return False
     for kw in BREAKFAST_KEYWORDS:
         if kw == "鸡蛋":
             if name == "鸡蛋" or name.endswith("鸡蛋"):
