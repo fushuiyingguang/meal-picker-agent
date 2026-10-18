@@ -13,6 +13,9 @@ st.set_page_config(page_title="智能筛选与摇号", page_icon="🎲")
 CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜点", "烧烤"]
 TASTES = ["辣", "麻", "清淡", "甜", "咸", "酸"]
 
+# 早餐品类关键词：聚餐模式下剔除，避免正餐场景抽出纯早餐（单人简餐保留）
+BREAKFAST_KEYWORDS = ["包", "粥", "鸡蛋", "油条", "豆浆", "胡辣汤", "馒头", "烧麦"]
+
 # 五种用餐模式预设：就餐人数、总预算区间（元）、距离（公里）、口味、荤素倾向、分类
 MODE_NAMES = ["单人简餐", "朋友小聚", "家庭聚餐", "公司聚餐", "社团团建"]
 MODES = {
@@ -41,6 +44,17 @@ def _dish_count(n: int) -> int:
 def _meat_ratio(meat_type: str) -> float:
     """荤素倾向 → 荤菜占比（默认 60% 荤 + 40% 素）。"""
     return {"荤": 0.7, "素": 0.4}.get(meat_type, 0.6)
+
+
+def _is_breakfast(name: str) -> bool:
+    """判断菜名是否为纯早餐品类；「鸡蛋」用精确/结尾匹配，避免误伤「鸡蛋灌饼」。"""
+    for kw in BREAKFAST_KEYWORDS:
+        if kw == "鸡蛋":
+            if name == "鸡蛋" or name.endswith("鸡蛋"):
+                return True
+        elif kw in name:
+            return True
+    return False
 
 
 def _spread_sample(pool, n):
@@ -193,7 +207,7 @@ taste = col2.multiselect("口味", TASTES, key="taste")
 k = _dish_count(n_people)
 ratio = _meat_ratio(MODES[st.session_state.mode]["meat_type"])
 
-# ---- 候选池（按分类/口味/距离筛选；预算按整桌总价校验） ----
+# ---- 候选池（按分类/口味/距离筛选；预算按整桌总价校验；聚餐模式剔除早餐品类） ----
 dishes = storage.list_dishes(
     category=category or None,
     taste=taste or None,
@@ -201,6 +215,9 @@ dishes = storage.list_dishes(
 filtered = []
 for d in dishes:
     if d.latitude is None or d.longitude is None:
+        continue
+    # 场景化过滤：非「单人简餐」的聚餐模式剔除纯早餐品类（包子/粥/鸡蛋等）
+    if st.session_state.mode != "单人简餐" and _is_breakfast(d.name):
         continue
     dist = haversine_km(lat, lon, d.latitude, d.longitude)
     if dist <= max_km:
