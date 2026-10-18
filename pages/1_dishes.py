@@ -10,7 +10,7 @@ from meal_picker_agent.storage import StorageError
 
 st.set_page_config(page_title="菜品库管理", page_icon="🍽️")
 
-CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜点", "烧烤"]
+CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜点", "烧烤", "外卖", "堂食", "家常菜"]
 TASTES = ["辣", "麻", "清淡", "甜", "咸", "酸"]
 MEAT_TYPES = ["荤", "素", "半荤素"]
 

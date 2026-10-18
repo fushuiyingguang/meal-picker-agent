@@ -10,7 +10,7 @@ from meal_picker_agent.seed import seed_demo_data
 
 st.set_page_config(page_title="智能筛选与摇号", page_icon="🎲")
 
-CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜点", "烧烤"]
+CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜点", "烧烤", "外卖", "堂食", "家常菜"]
 TASTES = ["辣", "麻", "清淡", "甜", "咸", "酸"]
 
 # 早餐品类关键词：聚餐模式下剔除，避免正餐场景抽出纯早餐（单人简餐保留）
