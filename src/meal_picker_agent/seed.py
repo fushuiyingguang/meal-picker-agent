@@ -6,6 +6,7 @@ from .config import DEFAULT_CENTER
 from .geo import offset_km
 from .models import Dish
 from .storage import Storage
+from .utils import NEW_CATEGORIES, categorize
 
 
 def _dish(name: str, category: str, price: float, taste: list[str], meat_type: str,
@@ -39,10 +40,23 @@ SEED_DISHES: list[Dish] = [
 ]
 
 
+def re_categorize_existing(storage: Storage) -> int:
+    """用自动分类引擎给现有菜品重新打标：命中关键词且当前为旧分类时覆盖，返回更新条数。"""
+    n = 0
+    for dish in storage.list_dishes():
+        cat = categorize(dish.name)
+        if cat and dish.category not in NEW_CATEGORIES:
+            storage.update_dish(dish.id, category=cat)
+            n += 1
+    return n
+
+
 def seed_demo_data(storage: Storage) -> int:
-    """若菜品库为空则导入演示数据，返回导入条数。"""
-    if storage.list_dishes():
-        return 0
-    for dish in SEED_DISHES:
-        storage.add_dish(dish)
-    return len(SEED_DISHES)
+    """若菜品库为空则导入演示数据；并始终用引擎给现有菜品重新打标，返回导入条数。"""
+    seeded = 0
+    if not storage.list_dishes():
+        for dish in SEED_DISHES:
+            storage.add_dish(dish)
+        seeded = len(SEED_DISHES)
+    re_categorize_existing(storage)
+    return seeded

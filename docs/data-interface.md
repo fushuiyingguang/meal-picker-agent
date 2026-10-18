@@ -114,4 +114,5 @@ M1 菜品库 ──写──▶ dishes ──读──▶ M2 筛选摇号 ──
 
 ## 约定
 - 数据库文件不入库；首次启动自动 `init_db`。
+- 分类自动打标由 `src/meal_picker_agent/utils.py` 的 `categorize` / `auto_categorize` 提供：录入与批量导入写入前调用；`seed.re_categorize_existing` 在启动时对旧分类数据重新打标（仅命中关键词且当前为旧分类时覆盖）。
 - 表结构/接口变更需同步更新本文档与三份模块报告。

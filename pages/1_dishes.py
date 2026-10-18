@@ -7,6 +7,7 @@ from meal_picker_agent.config import get_storage
 from meal_picker_agent.models import Dish
 from meal_picker_agent.seed import seed_demo_data
 from meal_picker_agent.storage import StorageError
+from meal_picker_agent.utils import auto_categorize
 
 st.set_page_config(page_title="菜品库管理", page_icon="🍽️")
 
@@ -40,10 +41,11 @@ def _import_dataframe(storage, df):
     errors = []
     for _, row in df.iterrows():
         try:
+            name = str(row["name"]).strip()
             dish = Dish(
                 id=None,
-                name=str(row["name"]).strip(),
-                category=str(row["category"]).strip(),
+                name=name,
+                category=auto_categorize(name, str(row.get("category") or "").strip()),
                 price=_to_float(row.get("price")),
                 taste=_parse_taste(row.get("taste")),
                 meat_type=str(row.get("meat_type") or "").strip(),
@@ -68,7 +70,7 @@ with st.expander("➕ 录入单个菜品", expanded=True):
     with st.form("add_dish_form"):
         col1, col2 = st.columns(2)
         name = col1.text_input("菜名 *")
-        category = col2.selectbox("分类 *", CATEGORIES)
+        category = col2.selectbox("分类", ["自动分类"] + CATEGORIES)
         price = col1.number_input("价格（元）", min_value=0.0, value=15.0, step=0.5)
         distance = col2.number_input("距离（米）", min_value=0.0, value=500.0, step=50.0)
         taste = st.multiselect("口味", TASTES)
@@ -85,7 +87,7 @@ with st.expander("➕ 录入单个菜品", expanded=True):
                     Dish(
                         id=None,
                         name=name.strip(),
-                        category=category,
+                        category=auto_categorize(name.strip(), category),
                         price=price,
                         taste=taste,
                         meat_type=meat_type,
