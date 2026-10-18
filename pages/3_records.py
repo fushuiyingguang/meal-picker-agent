@@ -69,6 +69,9 @@ else:
             for r in records
         ]
     )
+    # 评分列混有 int 与空字符串，pandas 会推断为 object，pyarrow 渲染时转 int64 报错；
+    # 统一转为可空整数：已评分显示数字，未评分显示为空（避免显示误导性的 0）。
+    df["评分"] = pd.to_numeric(df["评分"], errors="coerce").astype("Int64")
     st.dataframe(df)
 
     # 有明显备忘的记录用浅色信息框突出展示
