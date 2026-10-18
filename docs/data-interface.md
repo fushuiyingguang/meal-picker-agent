@@ -83,7 +83,7 @@ class Record:
     selected_at: str
     score: int | None = None
     rating_note: str | None = None
-    memo: str | None = None       # 就餐备忘/感受
+    memo: str = ""                 # 就餐备忘/感受
     source: str = "draw"
 ```
 

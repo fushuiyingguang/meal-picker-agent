@@ -75,7 +75,7 @@ def _row_to_record(row: sqlite3.Row) -> Record:
         selected_at=row["selected_at"],
         score=row["score"],
         rating_note=row["rating_note"],
-        memo=row["memo"],
+        memo=row["memo"] or "",
         source=row["source"],
     )
 
