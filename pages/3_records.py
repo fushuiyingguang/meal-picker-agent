@@ -64,11 +64,19 @@ else:
                 "来源": "摇号" if r.source == "draw" else "手动",
                 "评分": r.score if r.score is not None else "",
                 "评价": r.rating_note or "",
+                "备忘": r.memo or "",
             }
             for r in records
         ]
     )
     st.dataframe(df)
+
+    # 有明显备忘的记录用浅色信息框突出展示
+    memos = [(r.id, r.dish_name, r.memo) for r in records if r.memo]
+    if memos:
+        st.subheader("📝 就餐备忘")
+        for rid, dish_name, memo in memos:
+            st.info(f"**#{rid} · {dish_name}**\n\n{memo}")
 
     # ---- 打分评价 ----
     st.subheader("⭐ 打分评价")
@@ -88,6 +96,13 @@ else:
         storage.set_rating(rid, score, note)
         st.session_state.pop("rate_pick", None)  # 清空选中态，让 index 在 rerun 后重新定位到下一条未评分
         st.success("已保存评价")
+        st.rerun()
+
+    # ---- 就餐备忘（独立保存，不干扰打分跳转） ----
+    memo = st.text_area("📝 就餐备忘/感受（可选）", value=rec.memo or "", key=f"memo_{rid}", height=90)
+    if st.button("保存备忘"):
+        storage.set_memo(rid, memo.strip())
+        st.success("已保存备忘")
         st.rerun()
 
     # ---- 导出 ----

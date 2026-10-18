@@ -7,6 +7,7 @@ import streamlit as st
 from meal_picker_agent.config import DEFAULT_CENTER, get_storage
 from meal_picker_agent.geo import haversine_km
 from meal_picker_agent.seed import seed_demo_data
+from meal_picker_agent.utils import AVOID_OPTIONS, matches_avoid
 
 st.set_page_config(page_title="智能筛选与摇号", page_icon="🎲")
 
@@ -165,9 +166,10 @@ def _apply_mode():
 
 
 def _reset_filters():
-    """一键重置：回到默认模式「单人简餐」并应用其预设。"""
+    """一键重置：回到默认模式「单人简餐」并应用其预设，同时清空忌口。"""
     st.session_state.mode = MODE_NAMES[0]
     _apply_mode()
+    st.session_state.avoid = []
 
 
 def _locate_center():
@@ -207,6 +209,7 @@ st.caption(f"当前范围：中原工学院周边 {max_km:.1f} 公里")
 col1, col2 = st.columns(2)
 category = col1.multiselect("分类（可多选）", CATEGORIES, key="category")
 taste = col2.multiselect("口味", TASTES, key="taste")
+avoid = st.multiselect("忌口排除（多选，命中菜名或口味即剔除）", AVOID_OPTIONS, key="avoid")
 
 k = _dish_count(n_people)
 ratio = _meat_ratio(MODES[st.session_state.mode]["meat_type"])
@@ -223,6 +226,9 @@ for d in dishes:
     # 场景化过滤：非「单人简餐」的聚餐模式剔除纯早餐品类（包子/粥/鸡蛋等）
     if st.session_state.mode != "单人简餐" and _is_breakfast(d.name):
         continue
+    # 忌口排除：勾选的忌口命中菜名或口味字段即剔除
+    if matches_avoid(d.name, d.taste, avoid):
+        continue
     dist = haversine_km(lat, lon, d.latitude, d.longitude)
     if dist <= max_km:
         filtered.append((d, dist))
@@ -232,7 +238,7 @@ st.subheader("🎯 候选菜品")
 st.caption(f"当前符合条件：{len(filtered)} 道（按 {n_people} 人需搭配 {k} 道菜）")
 if not filtered:
     _clear_table()
-    st.warning("⚠️ 没有找到符合条件的菜品，请尝试扩大距离、去掉部分分类或口味限制。")
+    st.warning("⚠️ 没有找到符合条件的菜品，请尝试扩大距离、去掉部分分类、口味或忌口限制。")
     st.button("♻️ 一键重置筛选条件", type="primary", on_click=_reset_filters)
 elif len(filtered) < k:
     st.caption("候选不足，摇号时将提示放宽条件。")

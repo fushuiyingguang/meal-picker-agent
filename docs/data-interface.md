@@ -31,6 +31,7 @@
 | selected_at | TEXT | DEFAULT 当前时间 | 选餐时间 |
 | score | INTEGER | CHECK 1-5，可空 | 打分 |
 | rating_note | TEXT | 可空 | 评价文字 |
+| memo | TEXT | 可空 | 就餐备忘/感受 |
 | source | TEXT | DEFAULT 'draw' | 来源：draw / manual |
 
 > **删除策略（已定）**：允许删除菜品并保留历史——`records.dish_id` 置空，`dish_name` 快照保留菜名。
@@ -55,6 +56,7 @@ CREATE TABLE records (
     selected_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     score INTEGER CHECK (score BETWEEN 1 AND 5),
     rating_note TEXT,
+    memo TEXT,
     source TEXT NOT NULL DEFAULT 'draw'
 );
 ```
@@ -81,6 +83,7 @@ class Record:
     selected_at: str
     score: int | None = None
     rating_note: str | None = None
+    memo: str | None = None       # 就餐备忘/感受
     source: str = "draw"
 ```
 
@@ -99,6 +102,7 @@ class Record:
 | `add_record(dish_id, source="draw") -> int` | 新增记录，快照 `dish_name` |
 | `list_records() -> list[Record]` | 查询历史 |
 | `set_rating(record_id, score, note) -> bool` | 打分评价（1-5） |
+| `set_memo(record_id, memo) -> bool` | 写入/更新就餐备忘 |
 | `export_records(fmt="csv") -> str` | 导出内容字符串（csv/json） |
 | `recent_dish_ids(days=7) -> set[int]` | 近 N 天已选 id 集合（不重复推荐） |
 

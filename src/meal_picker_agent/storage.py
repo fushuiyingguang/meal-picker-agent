@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS records (
     selected_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     score INTEGER CHECK (score BETWEEN 1 AND 5),
     rating_note TEXT,
+    memo TEXT,
     source TEXT NOT NULL DEFAULT 'draw'
 );
 """
@@ -74,6 +75,7 @@ def _row_to_record(row: sqlite3.Row) -> Record:
         selected_at=row["selected_at"],
         score=row["score"],
         rating_note=row["rating_note"],
+        memo=row["memo"],
         source=row["source"],
     )
 
@@ -91,7 +93,7 @@ class Storage:
         return conn
 
     def init_db(self) -> None:
-        """建库建表（幂等），并补足旧库缺失的经纬度列。"""
+        """建库建表（幂等），并补足旧库缺失的经纬度列与 records.memo 列。"""
         conn = self._connect()
         try:
             conn.executescript(_SCHEMA)
@@ -100,6 +102,9 @@ class Storage:
                 conn.execute("ALTER TABLE dishes ADD COLUMN latitude REAL")
             if "longitude" not in cols:
                 conn.execute("ALTER TABLE dishes ADD COLUMN longitude REAL")
+            rec_cols = {r["name"] for r in conn.execute("PRAGMA table_info(records)")}
+            if "memo" not in rec_cols:
+                conn.execute("ALTER TABLE records ADD COLUMN memo TEXT")
             conn.commit()
         finally:
             conn.close()
@@ -262,6 +267,19 @@ class Storage:
         finally:
             conn.close()
 
+    def set_memo(self, record_id: int, memo: str) -> bool:
+        """写入/更新就餐备忘。"""
+        conn = self._connect()
+        try:
+            cur = conn.execute(
+                "UPDATE records SET memo = ? WHERE id = ?",
+                (memo, record_id),
+            )
+            conn.commit()
+            return cur.rowcount > 0
+        finally:
+            conn.close()
+
     def export_records(self, fmt: str = "csv") -> str:
         """导出历史记录（返回 csv/json 字符串内容）。"""
         records = self.list_records()
@@ -269,9 +287,9 @@ class Storage:
             return json.dumps([asdict(r) for r in records], ensure_ascii=False, indent=2)
         buf = io.StringIO()
         writer = csv.writer(buf)
-        writer.writerow(["id", "dish_id", "dish_name", "selected_at", "score", "rating_note", "source"])
+        writer.writerow(["id", "dish_id", "dish_name", "selected_at", "score", "rating_note", "memo", "source"])
         for r in records:
-            writer.writerow([r.id, r.dish_id, r.dish_name, r.selected_at, r.score, r.rating_note, r.source])
+            writer.writerow([r.id, r.dish_id, r.dish_name, r.selected_at, r.score, r.rating_note, r.memo, r.source])
         return buf.getvalue()
 
     def recent_dish_ids(self, days: int = 7) -> set[int]:

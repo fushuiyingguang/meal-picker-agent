@@ -101,6 +101,20 @@ class TestRecord:
         with pytest.raises(StorageError):
             storage.set_rating(rec_id, 6)
 
+    def test_set_memo(self, storage):
+        dish_id = storage.add_dish(_dish("红烧肉", "中餐"))
+        rec_id = storage.add_record(dish_id)
+        assert storage.set_memo(rec_id, "偏甜，下次少糖")
+        recs = storage.list_records()
+        assert recs[0].memo == "偏甜，下次少糖"
+
+    def test_set_memo_empty_clears(self, storage):
+        dish_id = storage.add_dish(_dish())
+        rec_id = storage.add_record(dish_id)
+        storage.set_memo(rec_id, "备忘")
+        assert storage.set_memo(rec_id, "")
+        assert storage.list_records()[0].memo == ""
+
     def test_recent_dish_ids(self, storage):
         d1 = storage.add_dish(_dish("A"))
         d2 = storage.add_dish(_dish("B"))

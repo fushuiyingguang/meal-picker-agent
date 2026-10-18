@@ -40,3 +40,23 @@ def auto_categorize(name: str, current_category: str | None = None) -> str:
     if current and current != AUTO_CATEGORY:
         return current
     return categorize(name) or DEFAULT_CATEGORY
+
+
+# M2 忌口排除选项：勾选后，菜名或口味字段命中即从候选池剔除
+AVOID_OPTIONS = ["辣", "酸", "甜", "香菜", "葱", "蒜", "海鲜", "牛羊肉"]
+
+# 「牛羊肉」展开为「牛 / 羊」：按整词「牛羊肉」几乎匹配不到任何菜名，
+# 拆开才能命中「牛肉面 / 羊肉串 / 牛排」等，符合“忌牛羊肉”的语义。
+_AVOID_TOKENS = {"牛羊肉": ["牛", "羊"]}
+
+
+def matches_avoid(name: str, tastes: list[str], avoids: list[str]) -> bool:
+    """忌口匹配：任一忌口关键词命中菜名或口味字段即返回 True，用于候选池排他过滤。"""
+    if not avoids:
+        return False
+    haystack = f"{name or ''} " + " ".join(tastes or [])
+    for avoid in avoids:
+        for token in _AVOID_TOKENS.get(avoid, [avoid]):
+            if token in haystack:
+                return True
+    return False
