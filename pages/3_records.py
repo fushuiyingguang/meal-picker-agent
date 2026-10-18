@@ -72,14 +72,21 @@ else:
 
     # ---- 打分评价 ----
     st.subheader("⭐ 打分评价")
-    options = {f"#{r.id} · {r.dish_name} · {r.selected_at}": r.id for r in records}
-    pick = st.selectbox("选择要评价的记录", list(options))
-    rid = options[pick]
-    rec = next(r for r in records if r.id == rid)
+    labels = [f"#{r.id} · {r.dish_name} · {r.selected_at}" for r in records]
+    # 动态默认值：定位到第一条未评分记录；全部评完则提示
+    unrated_idx = next((i for i, r in enumerate(records) if r.score is None), None)
+    if unrated_idx is None:
+        st.success("🎉 所有记录已评价完毕")
+        unrated_idx = 0
+    pick = st.selectbox("选择要评价的记录", labels, index=unrated_idx, key="rate_pick")
+    idx = labels.index(pick)
+    rec = records[idx]
+    rid = rec.id
     score = st.slider("评分（1-5）", 1, 5, rec.score or 3, key=f"score_{rid}")
     note = st.text_input("评价（可选）", value=rec.rating_note or "", key=f"note_{rid}")
     if st.button("保存评价", type="primary"):
         storage.set_rating(rid, score, note)
+        st.session_state.pop("rate_pick", None)  # 清空选中态，让 index 在 rerun 后重新定位到下一条未评分
         st.success("已保存评价")
         st.rerun()
 
