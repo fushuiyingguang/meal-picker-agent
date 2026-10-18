@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import csv
+from pathlib import Path
+
 from .config import DEFAULT_CENTER
 from .geo import offset_km
 from .models import Dish
 from .storage import Storage
-from .utils import NEW_CATEGORIES, categorize
+from .utils import NEW_CATEGORIES, auto_categorize, categorize
 
 
 def _dish(name: str, category: str, price: float, taste: list[str], meat_type: str,
@@ -39,6 +42,44 @@ SEED_DISHES: list[Dish] = [
     _dish("提拉米苏", "甜点", 18, ["甜"], "素", 1.8, 100),               # 校医院 1.8 公里
 ]
 
+# 北苑1楼真实采集数据（团队实地采集，随仓库一起部署，云端空库时自动导入）
+_BEIYUAN_CSV = Path(__file__).resolve().parents[2] / "samples" / "beiyuan_1f_menu.csv"
+
+
+def _parse_taste(value: str | None) -> list[str]:
+    """口味字段：逗号或斜杠分隔，兼容「咸/甜」「辣/咸」。"""
+    return [t.strip() for t in (value or "").replace("/", ",").replace("、", ",").split(",") if t.strip()]
+
+
+def _parse_float(value: str | None) -> float | None:
+    s = (value or "").strip()
+    return float(s) if s else None
+
+
+def _load_beiyuan_menu(storage: Storage) -> int:
+    """从 samples/beiyuan_1f_menu.csv 导入 77 条北苑1楼真实菜品，返回导入条数。"""
+    if not _BEIYUAN_CSV.exists():
+        return 0
+    n = 0
+    with open(_BEIYUAN_CSV, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            name = (row.get("name") or "").strip()
+            if not name:
+                continue
+            storage.add_dish(Dish(
+                id=None,
+                name=name,
+                category=auto_categorize(name, (row.get("category") or "").strip()),
+                price=_parse_float(row.get("price")),
+                taste=_parse_taste(row.get("taste")),
+                meat_type=(row.get("meat_type") or "").strip(),
+                distance=None,
+                latitude=_parse_float(row.get("latitude")),
+                longitude=_parse_float(row.get("longitude")),
+            ))
+            n += 1
+    return n
+
 
 def re_categorize_existing(storage: Storage) -> int:
     """用自动分类引擎给现有菜品重新打标：命中关键词且当前为旧分类时覆盖，返回更新条数。"""
@@ -52,11 +93,12 @@ def re_categorize_existing(storage: Storage) -> int:
 
 
 def seed_demo_data(storage: Storage) -> int:
-    """若菜品库为空则导入演示数据；并始终用引擎给现有菜品重新打标，返回导入条数。"""
+    """若菜品库为空则注入演示数据（16 条预设 + 77 条北苑1楼真实数据）；
+    并始终用引擎给现有菜品重新打标，返回本次导入条数。"""
     seeded = 0
     if not storage.list_dishes():
         for dish in SEED_DISHES:
             storage.add_dish(dish)
-        seeded = len(SEED_DISHES)
+        seeded = len(SEED_DISHES) + _load_beiyuan_menu(storage)
     re_categorize_existing(storage)
     return seeded
