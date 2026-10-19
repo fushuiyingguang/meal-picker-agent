@@ -1,5 +1,13 @@
 """M1 菜品库管理：录入、批量导入、导出、演示数据。"""
 
+import sys
+from pathlib import Path
+
+# 将项目的 src 目录添加到 Python 搜索路径（页面位于 pages/ 子目录，需向上回溯一层）
+src_path = Path(__file__).resolve().parents[1] / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
 import pandas as pd
 import streamlit as st
 

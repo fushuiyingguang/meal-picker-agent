@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# 将项目的 src 目录添加到 Python 搜索路径，确保云端能导入 meal_picker_agent 包
+src_path = Path(__file__).resolve().parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
 import streamlit as st
 
 from meal_picker_agent.config import DEFAULT_CENTER, get_storage
