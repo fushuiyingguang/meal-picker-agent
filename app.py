@@ -1,3 +1,6 @@
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 import streamlit as st
 
 from meal_picker_agent.config import DEFAULT_CENTER, get_storage
