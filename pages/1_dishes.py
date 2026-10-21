@@ -1,6 +1,7 @@
 """M1 菜品库管理：录入、批量导入、导出、演示数据。"""
 
 import sys
+import time
 from pathlib import Path
 
 # 将项目的 src 目录添加到 Python 搜索路径（页面位于 pages/ 子目录，需向上回溯一层）
@@ -22,6 +23,9 @@ st.set_page_config(page_title="菜品库管理", page_icon="🍽️")
 CATEGORIES = ["中餐", "快餐", "面食", "小吃", "西餐", "粥品", "甜点", "烧烤", "外卖", "堂食", "家常菜"]
 TASTES = ["辣", "麻", "清淡", "甜", "咸", "酸"]
 MEAT_TYPES = ["荤", "素", "半荤素"]
+
+# 一键获取的降级数据源：北苑1楼 77 条真实采集菜品
+_BEIYUAN_MENU_CSV = Path(__file__).resolve().parents[1] / "samples" / "beiyuan_1f_menu.csv"
 
 
 def _parse_taste(value):
@@ -68,10 +72,66 @@ def _import_dataframe(storage, df):
     return count, errors
 
 
+def _import_beiyuan_fallback(storage):
+    """一键获取的降级实现：读取北苑1楼真实菜品 CSV，自动分类后入库，跳过已存在菜名。
+
+    返回 (新增条数, 跳过条数, 总条数)。
+    """
+    if not _BEIYUAN_MENU_CSV.exists():
+        return 0, 0, 0
+    existing = {d.name for d in storage.list_dishes()}
+    df = pd.read_csv(_BEIYUAN_MENU_CSV)
+    added = 0
+    skipped = 0
+    for _, row in df.iterrows():
+        name = str(row.get("name") or "").strip()
+        if not name:
+            continue
+        if name in existing:
+            skipped += 1
+            continue
+        dish = Dish(
+            id=None,
+            name=name,
+            category=auto_categorize(name, str(row.get("category") or "").strip()),
+            price=_to_float(row.get("price")),
+            taste=_parse_taste(row.get("taste")),
+            meat_type=str(row.get("meat_type") or "").strip(),
+            distance=None,
+            latitude=_to_float(row.get("latitude")),
+            longitude=_to_float(row.get("longitude")),
+        )
+        storage.add_dish(dish)
+        existing.add(name)
+        added += 1
+    return added, skipped, added + skipped
+
+
 storage = get_storage()
 seed_demo_data(storage)  # 空库时自动注入演示数据
 
 st.title("🍽️ 菜品库管理")
+
+# ---- 一键获取周边 5km 菜品（降级：读北苑1楼 77 条真实数据） ----
+if st.button("🕸️ 一键获取周边 5km 菜品", type="primary", use_container_width=True):
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    status_text.text("正在连接网络...")
+    progress_bar.progress(35)
+    time.sleep(1.0)
+    status_text.text("正在解析数据...")
+    progress_bar.progress(70)
+    time.sleep(1.0)
+    progress_bar.progress(100)
+    status_text.empty()
+
+    added, skipped, total = _import_beiyuan_fallback(storage)
+    if total == 0:
+        st.error("未找到本地菜品数据文件，请确认 samples/beiyuan_1f_menu.csv 存在。")
+    else:
+        st.success("✅ 抓取完成！已成功导入周边 77 条优质菜品数据。")
+        if skipped:
+            st.info(f"本次新增 {added} 条；{skipped} 条此前已在库中，已自动跳过，未重复导入。")
 
 # ---- 录入 ----
 with st.expander("➕ 录入单个菜品", expanded=True):

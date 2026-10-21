@@ -11,7 +11,7 @@
 
 ## 依赖
 - 运行：`streamlit`、`pandas`、`openpyxl`（Excel 导入）
-- 爬虫脚本（代码留存）：`requests`
+- 爬虫脚本：`requests`（模板）＋ `playwright`（可选，实时抓取失败自动降级本地 CSV）
 - 测试：`pytest`
 - 依赖清单：`requirements.txt`（与 `pyproject.toml` 保持一致）
 
@@ -33,7 +33,8 @@ meal-picker-agent/
 │   ├── seed.py                 # 演示数据（中原工学院周边）
 │   └── config.py               # 全局配置（数据库路径 + 默认地理中心）
 ├── scripts/
-│   └── fetch_meituan.py        # 爬虫脚本（仅代码留存，默认离线）
+│   ├── crawl_food.py           # 外卖爬虫（playwright + 本地降级，输出 crawled_5km_menu.csv）
+│   └── fetch_meituan.py        # 早期爬虫模板（仅代码留存，默认离线）
 ├── samples/
 │   └── beiyuan_1f_menu.csv     # 团队实地采集北苑1楼 77 条真实菜品数据
 ├── data/                       # SQLite 文件（git 忽略）

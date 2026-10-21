@@ -17,6 +17,9 @@ env/
 # 数据
 data/
 *.db
+samples/crawled_5km_menu.csv
+samples/_debug_*.json
+drivers/
 
 # 工具
 .pytest_cache/
